@@ -1,0 +1,17 @@
+query PullRequests($username: String!) {
+  user(login: $username) {
+    pullRequests (first: 5, orderBy: {field: CREATED_AT, direction: DESC}) {
+      edges {
+        node {
+          title,
+          url,
+          repository {
+            name,
+            url,
+            isPrivate
+          }
+        }
+      }
+    }
+  }
+}

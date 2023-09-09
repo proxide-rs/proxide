@@ -1,0 +1,13 @@
+query Repositories($username: String!) {
+  user(login: $username) {
+    repositories(first: 5, isFork: false, ownerAffiliations: OWNER, orderBy: {field: CREATED_AT, direction: DESC}) {
+      edges {
+        node {
+          name
+          url,
+          isPrivate
+        }
+      }
+    }
+  }
+}

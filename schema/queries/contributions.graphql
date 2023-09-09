@@ -1,0 +1,21 @@
+query Contributions($username: String!) {
+  user(login: $username) {
+    contributionsCollection {
+      commitContributionsByRepository(maxRepositories: 100) {
+        contributions(first: 1) {
+          edges {
+            node {
+              occurredAt
+            }
+          }
+        }
+        repository {
+          name
+          description
+          url
+          isPrivate
+        }
+      }
+    }
+  }
+}
