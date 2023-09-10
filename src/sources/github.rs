@@ -1,5 +1,6 @@
-use graphql_client::{reqwest::post_graphql, GraphQLQuery};
-use reqwest::{header::InvalidHeaderValue, Client};
+use graphql_client::{reqwest::post_graphql_blocking, GraphQLQuery};
+use reqwest::{blocking::Client, header::InvalidHeaderValue};
+use serde::Serialize;
 use thiserror::Error;
 
 const GITHUB_GRAPHQL_API_URL: &str = "https://api.github.com/graphql";
@@ -20,15 +21,16 @@ pub enum GithubClientError {
     NoData,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GithubClient {
+    username: String,
     client: Client,
 }
 
 pub type Result<T, E = GithubClientError> = std::result::Result<T, E>;
 
 impl GithubClient {
-    pub fn new(api_token: &str) -> Result<Self> {
+    pub fn new(api_token: &str, username: String) -> Result<Self> {
         let client = Client::builder()
             .user_agent("proxide")
             .default_headers(
@@ -40,19 +42,37 @@ impl GithubClient {
             )
             .build()?;
 
-        Ok(Self { client })
+        Ok(Self { client, username })
     }
 
-    pub async fn get_contributions(&self, username: String) -> Result<()> {
-        let variables = contributions::Variables { username };
+    pub fn get_contributions(&self) -> Result<Vec<Contribution>> {
+        let variables = contributions::Variables {
+            username: self.username.clone(),
+        };
 
-        let response =
-            post_graphql::<Contributions, _>(&self.client, GITHUB_GRAPHQL_API_URL, variables)
-                .await?;
+        let response = post_graphql_blocking::<Contributions, _>(
+            &self.client,
+            GITHUB_GRAPHQL_API_URL,
+            variables,
+        )?;
 
-        let date: contributions::ResponseData = response.data.ok_or(GithubClientError::NoData)?;
+        let data: contributions::ResponseData = response.data.ok_or(GithubClientError::NoData)?;
 
-        todo!()
+        let contributions = data
+            .user
+            .unwrap()
+            .contributions_collection
+            .commit_contributions_by_repository
+            .into_iter()
+            .map(|c| Contribution {
+                repo_desc: c.repository.description.unwrap_or_default(),
+                repo_is_private: c.repository.is_private,
+                repo_name: c.repository.name_with_owner,
+                repo_url: c.repository.url,
+            })
+            .collect();
+
+        Ok(contributions)
     }
 
     pub fn get_pull_requests(&self) -> Result<()> {
@@ -66,8 +86,16 @@ impl GithubClient {
 
 #[derive(Debug, GraphQLQuery)]
 #[graphql(
-    schema_path = "schema/schema.graphql",
     query_path = "schema/queries/contributions.graphql",
+    schema_path = "schema/schema.graphql",
     response_derives = "Debug"
 )]
 pub struct Contributions;
+
+#[derive(Debug, Serialize)]
+pub struct Contribution {
+    pub repo_is_private: bool,
+    pub repo_name: String,
+    pub repo_desc: String,
+    pub repo_url: String,
+}
