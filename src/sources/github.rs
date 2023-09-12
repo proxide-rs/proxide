@@ -45,42 +45,116 @@ impl GithubClient {
         Ok(Self { client, username })
     }
 
-    pub fn get_contributions(&self) -> Result<Vec<Contribution>> {
+    pub fn get_contributions(&self, count: Option<i64>) -> Result<Vec<Contribution>> {
         let variables = contributions::Variables {
             username: self.username.clone(),
         };
 
-        let response = post_graphql_blocking::<Contributions, _>(
-            &self.client,
-            GITHUB_GRAPHQL_API_URL,
-            variables,
-        )?;
+        let data = self.make_request::<Contributions>(variables)?;
 
-        let data: contributions::ResponseData = response.data.ok_or(GithubClientError::NoData)?;
-
-        let contributions = data
+        let mut contributions: Vec<Contribution> = data
             .user
             .unwrap()
             .contributions_collection
             .commit_contributions_by_repository
             .into_iter()
-            .map(|c| Contribution {
-                repo_desc: c.repository.description.unwrap_or_default(),
-                repo_is_private: c.repository.is_private,
-                repo_name: c.repository.name_with_owner,
-                repo_url: c.repository.url,
+            .filter(|c| !c.repository.is_private)
+            .map(|c| {
+                let edge = c.contributions.edges.unwrap()[0].clone();
+
+                Contribution {
+                    repo_desc: c.repository.description.unwrap_or_default(),
+                    occurred_at: edge.unwrap().node.unwrap().occurred_at,
+                    repo_is_private: c.repository.is_private,
+                    repo_name: c.repository.name_with_owner,
+                    repo_url: c.repository.url,
+                }
             })
             .collect();
+
+        // Sadly this is not chainable
+        contributions.sort();
+        contributions.reverse();
+        contributions.truncate(count.unwrap_or(5) as usize);
 
         Ok(contributions)
     }
 
-    pub fn get_pull_requests(&self) -> Result<()> {
-        todo!()
+    pub fn get_pull_requests(&self, count: Option<i64>) -> Result<Vec<PullRequest>> {
+        let variables = pull_requests::Variables {
+            count: count.or(pull_requests::Variables::default_count()),
+            username: self.username.clone(),
+        };
+
+        let data = self.make_request::<PullRequests>(variables)?;
+
+        let pull_requests = data
+            .user
+            .unwrap()
+            .pull_requests
+            .edges
+            .unwrap()
+            .into_iter()
+            .flatten()
+            .map(|p| {
+                let pr = p.node.unwrap();
+
+                PullRequest {
+                    created_at: pr.created_at,
+                    title: pr.title,
+                    url: pr.url,
+                    repo: Repository {
+                        desc: pr.repository.description.unwrap_or_default(),
+                        is_private: pr.repository.is_private,
+                        name: pr.repository.name_with_owner,
+                        url: pr.repository.url,
+                    },
+                }
+            })
+            .collect();
+
+        Ok(pull_requests)
     }
 
-    pub fn get_repositories(&self) -> Result<()> {
-        todo!()
+    pub fn get_repositories(&self, count: Option<i64>) -> Result<Vec<Repository>> {
+        let variables = repositories::Variables {
+            count: count.or(pull_requests::Variables::default_count()),
+            username: self.username.clone(),
+        };
+
+        let data = self.make_request::<Repositories>(variables)?;
+
+        let repositories: Vec<Repository> = data
+            .user
+            .unwrap()
+            .repositories
+            .edges
+            .unwrap()
+            .into_iter()
+            .flatten()
+            .map(|r| {
+                let repo = r.node.unwrap();
+
+                Repository {
+                    desc: repo.description.unwrap_or_default(),
+                    is_private: repo.is_private,
+                    name: repo.name_with_owner,
+                    url: repo.url,
+                }
+            })
+            .collect();
+
+        Ok(repositories)
+    }
+
+    fn make_request<Q>(&self, variables: Q::Variables) -> Result<Q::ResponseData>
+    where
+        Q: GraphQLQuery,
+    {
+        let response =
+            post_graphql_blocking::<Q, _>(&self.client, GITHUB_GRAPHQL_API_URL, variables)?;
+
+        response.data.ok_or(GithubClientError::NoData)
     }
 }
 
@@ -88,14 +162,55 @@ impl GithubClient {
 #[graphql(
     query_path = "schema/queries/contributions.graphql",
     schema_path = "schema/schema.graphql",
-    response_derives = "Debug"
+    response_derives = "Debug, Clone"
 )]
-pub struct Contributions;
+struct Contributions;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq, PartialOrd, Eq)]
 pub struct Contribution {
+    pub occurred_at: DateTime,
     pub repo_is_private: bool,
     pub repo_name: String,
     pub repo_desc: String,
     pub repo_url: String,
+}
+
+impl Ord for Contribution {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.occurred_at.cmp(&other.occurred_at)
+    }
+}
+
+#[derive(Debug, GraphQLQuery)]
+#[graphql(
+    query_path = "schema/queries/pull_requests.graphql",
+    schema_path = "schema/schema.graphql",
+    variables_derives = "Default",
+    response_derives = "Debug"
+)]
+struct PullRequests;
+
+#[derive(Debug, Serialize)]
+pub struct PullRequest {
+    pub created_at: DateTime,
+    pub repo: Repository,
+    pub title: String,
+    pub url: String,
+}
+
+#[derive(Debug, GraphQLQuery)]
+#[graphql(
+    query_path = "schema/queries/repositories.graphql",
+    schema_path = "schema/schema.graphql",
+    variables_derives = "Default",
+    response_derives = "Debug"
+)]
+struct Repositories;
+
+#[derive(Debug, Serialize)]
+pub struct Repository {
+    pub is_private: bool,
+    pub name: String,
+    pub desc: String,
+    pub url: String,
 }

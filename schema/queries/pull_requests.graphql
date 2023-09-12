@@ -1,14 +1,16 @@
-query PullRequests($username: String!) {
+query PullRequests($username: String!, $count: Int = 5) {
   user(login: $username) {
-    pullRequests (first: 5, orderBy: {field: CREATED_AT, direction: DESC}) {
+    pullRequests (first: $count, orderBy: {field: CREATED_AT, direction: DESC}) {
       edges {
         node {
           title,
           url,
+          createdAt
           repository {
-            name,
+            nameWithOwner,
             url,
-            isPrivate
+            isPrivate,
+            description
           }
         }
       }

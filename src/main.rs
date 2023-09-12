@@ -14,6 +14,8 @@ fn main() {
     let template = fs::read_to_string(cli.template_file).unwrap();
     let output_file = fs::OpenOptions::new()
         .write(true)
+        .create(true)
+        .truncate(true)
         .open(cli.output_file)
         .unwrap();
 

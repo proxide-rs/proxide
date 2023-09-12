@@ -2,7 +2,7 @@ query Contributions($username: String!) {
   user(login: $username) {
     contributionsCollection {
       commitContributionsByRepository(maxRepositories: 100) {
-        contributions(first: 1, orderBy: { field: OCCURRED_AT, direction: DESC }) {
+        contributions(first: 1) {
           edges {
             node {
               occurredAt
@@ -10,10 +10,10 @@ query Contributions($username: String!) {
           }
         }
         repository {
-          nameWithOwner
-          description
+          nameWithOwner,
+          description,
+          isPrivate,
           url
-          isPrivate
         }
       }
     }

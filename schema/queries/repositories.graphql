@@ -1,11 +1,12 @@
-query Repositories($username: String!) {
+query Repositories($username: String!, $count: Int = 5) {
   user(login: $username) {
-    repositories(first: 5, isFork: false, ownerAffiliations: OWNER, orderBy: {field: CREATED_AT, direction: DESC}) {
+    repositories(first: $count, isFork: false, ownerAffiliations: OWNER, orderBy: {field: CREATED_AT, direction: DESC}) {
       edges {
         node {
-          name
+          nameWithOwner,
+          description,
+          isPrivate,
           url,
-          isPrivate
         }
       }
     }
