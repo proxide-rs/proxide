@@ -11,3 +11,9 @@
 {% for pr in recentPullRequests() -%}
 - [{{ pr.title }}]({{ pr.url }}) on [{{ pr.repo.name }}]({{ pr.repo.url }})
 {% endfor %}
+
+#### 📜 My recent blog posts
+
+{% for post in rssFeed(url="https://domain.tld/feed.xml", count=3) -%}
+- [{{ post.title }}](https://domain.tld{{ post.link }})
+{% endfor %}

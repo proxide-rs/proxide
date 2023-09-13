@@ -3,7 +3,10 @@ use std::{collections::HashMap, io::Write};
 use tera::{to_value, Context, Function, Tera, Value};
 use thiserror::Error;
 
-use crate::sources::github::{GithubClient, GithubClientError};
+use crate::sources::{
+    github::{GithubClient, GithubClientError},
+    rss::get_posts,
+};
 
 pub type Result<T, E = RendererError> = std::result::Result<T, E>;
 
@@ -41,6 +44,8 @@ impl Renderer {
             "recentRepositories",
             recent_repositories(github_client.clone()),
         );
+
+        renderer.register_function("rssFeed", rss_feed());
 
         let mut context = Context::new();
         context.insert("github_username", &github_username);
@@ -108,5 +113,25 @@ fn recent_repositories(github_client: GithubClient) -> impl Function {
         };
 
         Ok(to_value(repositories).unwrap())
+    }
+}
+
+fn rss_feed() -> impl Function {
+    move |args: &HashMap<String, Value>| -> tera::Result<Value> {
+        let count = match args.get("count") {
+            Some(v) => match v.as_u64() {
+                Some(v) => Some(v),
+                None => None,
+            },
+            None => None,
+        };
+
+        let url = args
+            .get("url")
+            .ok_or("Failed to read rss feed, no url provided")?
+            .as_str()
+            .unwrap_or_default();
+
+        Ok(to_value(get_posts(url, count).unwrap()).unwrap())
     }
 }
