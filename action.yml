@@ -1,0 +1,23 @@
+name: Proxide
+description: GitHub Action to automatically update your profile README
+author: Techassi
+branding:
+  icon: book
+  color: orange
+inputs:
+  template_file:
+    description: Path tp template file
+    required: true
+  github_token:
+    description: GitHub API token
+    required: true
+  output_file:
+    description: Path to output file, usually 'README.md'
+    default: README.md
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - '--template-file ${{ inputs.template_file }}'
+    - '--github-token ${{ inputs.github_token }}'
+    - '--output-file ${{ inputs.output_file }}'

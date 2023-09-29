@@ -2,7 +2,7 @@ use std::fs;
 
 use clap::Parser;
 
-use crate::{cli::Cli, template::Renderer};
+use crate::{cli::Cli, sources::github::GithubClient, template::Renderer};
 
 mod cli;
 mod sources;
@@ -19,6 +19,9 @@ fn main() {
         .open(cli.output_file)
         .unwrap();
 
-    let mut renderer = Renderer::new(&cli.token, cli.username).unwrap();
+    let client = GithubClient::new(&cli.token).unwrap();
+    let username = client.get_username().unwrap();
+
+    let mut renderer = Renderer::new(&client, username).unwrap();
     renderer.render(&template, output_file).unwrap();
 }

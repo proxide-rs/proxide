@@ -23,14 +23,13 @@ pub enum GithubClientError {
 
 #[derive(Debug, Clone)]
 pub struct GithubClient {
-    username: String,
     client: Client,
 }
 
 pub type Result<T, E = GithubClientError> = std::result::Result<T, E>;
 
 impl GithubClient {
-    pub fn new(api_token: &str, username: String) -> Result<Self> {
+    pub fn new(api_token: &str) -> Result<Self> {
         let client = Client::builder()
             .user_agent("proxide")
             .default_headers(
@@ -42,13 +41,20 @@ impl GithubClient {
             )
             .build()?;
 
-        Ok(Self { client, username })
+        Ok(Self { client })
     }
 
-    pub fn get_contributions(&self, count: Option<i64>) -> Result<Vec<Contribution>> {
-        let variables = contributions::Variables {
-            username: self.username.clone(),
-        };
+    pub fn get_username(&self) -> Result<String> {
+        let data = self.make_request::<Viewer>(viewer::Variables {})?;
+        Ok(data.viewer.login)
+    }
+
+    pub fn get_contributions(
+        &self,
+        count: Option<i64>,
+        username: String,
+    ) -> Result<Vec<Contribution>> {
+        let variables = contributions::Variables { username };
 
         let data = self.make_request::<Contributions>(variables)?;
 
@@ -80,10 +86,14 @@ impl GithubClient {
         Ok(contributions)
     }
 
-    pub fn get_pull_requests(&self, count: Option<i64>) -> Result<Vec<PullRequest>> {
+    pub fn get_pull_requests(
+        &self,
+        count: Option<i64>,
+        username: String,
+    ) -> Result<Vec<PullRequest>> {
         let variables = pull_requests::Variables {
             count: count.or(pull_requests::Variables::default_count()),
-            username: self.username.clone(),
+            username,
         };
 
         let data = self.make_request::<PullRequests>(variables)?;
@@ -116,10 +126,14 @@ impl GithubClient {
         Ok(pull_requests)
     }
 
-    pub fn get_repositories(&self, count: Option<i64>) -> Result<Vec<Repository>> {
+    pub fn get_repositories(
+        &self,
+        count: Option<i64>,
+        username: String,
+    ) -> Result<Vec<Repository>> {
         let variables = repositories::Variables {
             count: count.or(pull_requests::Variables::default_count()),
-            username: self.username.clone(),
+            username,
         };
 
         let data = self.make_request::<Repositories>(variables)?;
@@ -157,6 +171,14 @@ impl GithubClient {
         response.data.ok_or(GithubClientError::NoData)
     }
 }
+
+#[derive(Debug, GraphQLQuery)]
+#[graphql(
+    query_path = "schema/queries/viewer.graphql",
+    schema_path = "schema/schema.graphql",
+    response_derives = "Debug, Clone"
+)]
+struct Viewer;
 
 #[derive(Debug, GraphQLQuery)]
 #[graphql(

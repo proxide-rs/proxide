@@ -25,24 +25,22 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(github_api_token: &str, github_username: String) -> Result<Self> {
-        let github_client = GithubClient::new(github_api_token, github_username.clone())?;
-
+    pub fn new(github_client: &GithubClient, github_username: String) -> Result<Self> {
         let mut renderer = Tera::default();
 
         renderer.register_function(
             "recentContributions",
-            recent_contributions(github_client.clone()),
+            recent_contributions(github_client.clone(), github_username.clone()),
         );
 
         renderer.register_function(
             "recentPullRequests",
-            recent_pull_requests(github_client.clone()),
+            recent_pull_requests(github_client.clone(), github_username.clone()),
         );
 
         renderer.register_function(
             "recentRepositories",
-            recent_repositories(github_client.clone()),
+            recent_repositories(github_client.clone(), github_username.clone()),
         );
 
         renderer.register_function("rssFeed", rss_feed());
@@ -59,7 +57,7 @@ impl Renderer {
     }
 }
 
-fn recent_contributions(github_client: GithubClient) -> impl Function {
+fn recent_contributions(github_client: GithubClient, username: String) -> impl Function {
     move |args: &HashMap<String, Value>| -> tera::Result<Value> {
         let count = match args.get("count") {
             Some(v) => match v.as_i64() {
@@ -69,7 +67,7 @@ fn recent_contributions(github_client: GithubClient) -> impl Function {
             None => None,
         };
 
-        let contributions = match github_client.get_contributions(count) {
+        let contributions = match github_client.get_contributions(count, username.clone()) {
             Ok(contributions) => contributions,
             Err(err) => return Err(err.to_string().into()),
         };
@@ -78,7 +76,7 @@ fn recent_contributions(github_client: GithubClient) -> impl Function {
     }
 }
 
-fn recent_pull_requests(github_client: GithubClient) -> impl Function {
+fn recent_pull_requests(github_client: GithubClient, username: String) -> impl Function {
     move |args: &HashMap<String, Value>| -> tera::Result<Value> {
         let count = match args.get("count") {
             Some(v) => match v.as_i64() {
@@ -88,7 +86,7 @@ fn recent_pull_requests(github_client: GithubClient) -> impl Function {
             None => None,
         };
 
-        let pull_requests = match github_client.get_pull_requests(count) {
+        let pull_requests = match github_client.get_pull_requests(count, username.clone()) {
             Ok(pull_requests) => pull_requests,
             Err(err) => return Err(err.to_string().into()),
         };
@@ -97,7 +95,7 @@ fn recent_pull_requests(github_client: GithubClient) -> impl Function {
     }
 }
 
-fn recent_repositories(github_client: GithubClient) -> impl Function {
+fn recent_repositories(github_client: GithubClient, username: String) -> impl Function {
     move |args: &HashMap<String, Value>| -> tera::Result<Value> {
         let count = match args.get("count") {
             Some(v) => match v.as_i64() {
@@ -107,7 +105,7 @@ fn recent_repositories(github_client: GithubClient) -> impl Function {
             None => None,
         };
 
-        let repositories = match github_client.get_repositories(count) {
+        let repositories = match github_client.get_repositories(count, username.clone()) {
             Ok(repositories) => repositories,
             Err(err) => return Err(err.to_string().into()),
         };
