@@ -12,7 +12,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - uses: Swatinem/rust-cache@2.7.0
+      - uses: Swatinem/rust-cache@v2.7.0
         with:
           key: test
 
@@ -30,7 +30,7 @@ jobs:
         with:
           components: clippy
 
-      - uses: Swatinem/rust-cache@2.7.0
+      - uses: Swatinem/rust-cache@v2.7.0
         with:
           key: clippy
 
@@ -48,7 +48,7 @@ jobs:
         with:
           components: rustfmt
 
-      - uses: Swatinem/rust-cache@2.7.0
+      - uses: Swatinem/rust-cache@v2.7.0
         with:
           key: fmt
 
