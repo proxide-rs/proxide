@@ -17,5 +17,5 @@ pub struct Cli {
     pub(crate) username: String,
 
     /// Path to output file, usually 'README.md'
-    pub(crate) output_file: PathBuf,
+    pub(crate) output_file: Option<PathBuf>,
 }

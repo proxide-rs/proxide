@@ -106,20 +106,23 @@ impl GithubClient {
             .unwrap()
             .into_iter()
             .flatten()
-            .map(|p| {
+            .filter_map(|p| {
                 let pr = p.node.unwrap();
 
-                PullRequest {
+                if pr.repository.is_private {
+                    return None;
+                }
+
+                Some(PullRequest {
                     created_at: pr.created_at,
                     title: pr.title,
                     url: pr.url,
                     repo: Repository {
                         desc: pr.repository.description.unwrap_or_default(),
-                        is_private: pr.repository.is_private,
                         name: pr.repository.name_with_owner,
                         url: pr.repository.url,
                     },
-                }
+                })
             })
             .collect();
 
@@ -146,15 +149,18 @@ impl GithubClient {
             .unwrap()
             .into_iter()
             .flatten()
-            .map(|r| {
+            .filter_map(|r| {
                 let repo = r.node.unwrap();
 
-                Repository {
+                if repo.is_private {
+                    return None;
+                }
+
+                Some(Repository {
                     desc: repo.description.unwrap_or_default(),
-                    is_private: repo.is_private,
                     name: repo.name_with_owner,
                     url: repo.url,
-                }
+                })
             })
             .collect();
 
@@ -231,7 +237,6 @@ struct Repositories;
 
 #[derive(Debug, Serialize)]
 pub struct Repository {
-    pub is_private: bool,
     pub name: String,
     pub desc: String,
     pub url: String,
