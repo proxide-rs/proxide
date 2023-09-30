@@ -194,13 +194,19 @@ struct Viewer;
 )]
 struct Contributions;
 
-#[derive(Debug, Serialize, PartialEq, PartialOrd, Eq)]
+#[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct Contribution {
     pub occurred_at: DateTime,
     pub repo_is_private: bool,
     pub repo_name: String,
     pub repo_desc: String,
     pub repo_url: String,
+}
+
+impl PartialOrd for Contribution {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.occurred_at.partial_cmp(&other.occurred_at)
+    }
 }
 
 impl Ord for Contribution {
