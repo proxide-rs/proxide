@@ -205,7 +205,7 @@ pub struct Contribution {
 
 impl PartialOrd for Contribution {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.occurred_at.partial_cmp(&other.occurred_at)
+        Some(self.cmp(other))
     }
 }
 
