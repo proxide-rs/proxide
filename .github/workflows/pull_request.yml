@@ -1,0 +1,86 @@
+name: Check Action on Pull Request
+on:
+  pull_request:
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2.7.0
+        with:
+          key: test
+
+      - name: Run Tests
+        run: cargo test
+
+  run-clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2.7.0
+        with:
+          key: clippy
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  run-fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2.7.0
+        with:
+          key: fmt
+
+      - name: Run Rustfmt
+        run: cargo fmt --all -- --check
+
+  check-action:
+    runs-on: ubuntu-latest
+    needs:
+      - run-clippy
+      - run-tests
+      - run-fmt
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install Binary
+      run: cargo install --path .
+
+    - name: Run Binary
+      id: expected
+      run: echo "results=$(proxide)" >> $GITHUB_OUTPUT
+
+    - name: Use Action
+      uses: ./
+      id: actual
+
+    - name: Compare Outputs
+      uses: nick-fields/assert-action@v1
+      with:
+        expected: ${{ steps.expected.outputs.files }}
+        actual: ${{ steps.actual.outputs.files }}

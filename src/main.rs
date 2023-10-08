@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, io};
 
 use clap::Parser;
 
@@ -12,16 +12,22 @@ fn main() {
     let cli = Cli::parse();
 
     let template = fs::read_to_string(cli.template_file).unwrap();
-    let output_file = fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(cli.output_file)
-        .unwrap();
-
     let client = GithubClient::new(&cli.token).unwrap();
     let username = client.get_username().unwrap();
 
     let mut renderer = Renderer::new(&client, username).unwrap();
-    renderer.render(&template, output_file).unwrap();
+
+    match cli.output_file {
+        Some(path) => {
+            let file = fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(path)
+                .unwrap();
+
+            renderer.render(&template, file).unwrap()
+        }
+        None => renderer.render(&template, io::stdout()).unwrap(),
+    }
 }

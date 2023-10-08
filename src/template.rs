@@ -60,10 +60,7 @@ impl Renderer {
 fn recent_contributions(github_client: GithubClient, username: String) -> impl Function {
     move |args: &HashMap<String, Value>| -> tera::Result<Value> {
         let count = match args.get("count") {
-            Some(v) => match v.as_i64() {
-                Some(v) => Some(v),
-                None => None,
-            },
+            Some(v) => v.as_i64(),
             None => None,
         };
 
@@ -79,10 +76,7 @@ fn recent_contributions(github_client: GithubClient, username: String) -> impl F
 fn recent_pull_requests(github_client: GithubClient, username: String) -> impl Function {
     move |args: &HashMap<String, Value>| -> tera::Result<Value> {
         let count = match args.get("count") {
-            Some(v) => match v.as_i64() {
-                Some(v) => Some(v),
-                None => None,
-            },
+            Some(v) => v.as_i64(),
             None => None,
         };
 
@@ -98,10 +92,7 @@ fn recent_pull_requests(github_client: GithubClient, username: String) -> impl F
 fn recent_repositories(github_client: GithubClient, username: String) -> impl Function {
     move |args: &HashMap<String, Value>| -> tera::Result<Value> {
         let count = match args.get("count") {
-            Some(v) => match v.as_i64() {
-                Some(v) => Some(v),
-                None => None,
-            },
+            Some(v) => v.as_i64(),
             None => None,
         };
 
@@ -117,10 +108,7 @@ fn recent_repositories(github_client: GithubClient, username: String) -> impl Fu
 fn rss_feed() -> impl Function {
     move |args: &HashMap<String, Value>| -> tera::Result<Value> {
         let count = match args.get("count") {
-            Some(v) => match v.as_u64() {
-                Some(v) => Some(v),
-                None => None,
-            },
+            Some(v) => v.as_u64(),
             None => None,
         };
 
